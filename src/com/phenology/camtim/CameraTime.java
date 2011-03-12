@@ -8,139 +8,142 @@ import java.io.IOException;
 import java.util.Date;
 
 import android.app.Activity;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.VideoView;
 
 public class CameraTime extends Activity
-implements OnClickListener, Camera.PictureCallback{
-  	EditText minutes;
-    Button startb;
-    private Camera ct_camera;
-    private boolean is_ct_active; //is camera on
-    private boolean is_ct_running; //are we taking pictures
-    private String image_name;
-    
-    /** Called when the activity is first created. */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);
-        minutes = (EditText) findViewById(R.id.editText2); 
-        startb = (Button) findViewById(R.id.button1);
-        startb.setOnClickListener(this);
-        is_ct_active = false;
-        image_name = "nothing.jpg";
-    }
+implements OnClickListener, Camera.PictureCallback, Runnable{
+    EditText minutes;
+  Button startb;
+  private Camera ct_camera;
+  private boolean is_ct_active; //is camera on
+  private boolean is_ct_running; //are we taking pictures
+  private String image_name;
+  private String image_prefix;
+  private int image_counter;
+  private Handler handler;
+  
+  /** Called when the activity is first created. */
+  @Override
+  public void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.main);
+    minutes = (EditText) findViewById(R.id.editText2); 
+    startb = (Button) findViewById(R.id.button1);
+    startb.setOnClickListener(this);
+    is_ct_active = false;
+    is_ct_running = false;
+    image_name = "nothing.jpg";
+    image_prefix = Long.toString(System.currentTimeMillis());
+    image_counter = 0;
+    handler = new Handler();
+  }
 
-    private int getMinutes (){
-    	try{
-    		return Integer.parseInt(minutes.getText().toString());
-    	}catch (NumberFormatException nfe) {return 60;}
-    } 
+  private long getMilies (){
+    try{
+      return Long.parseLong(minutes.getText().toString()) * 60 * 1000;
+    }catch (NumberFormatException nfe) {return 60*60*1000;}
+  } 
 
-    private boolean startCamera (){
-    	ct_camera = Camera.open();
+  private boolean startCamera (){
+    ct_camera = Camera.open();
 
-    	Camera.Parameters p = ct_camera.getParameters();
-    	ct_camera.setParameters(p);
-    	
-    	VideoView vv = (VideoView) findViewById(R.id.videoView1);
-    	try{
-    		ct_camera.setPreviewDisplay(vv.getHolder());
-    	} catch (IOException ioe) {return false;}
-    	
-    	ct_camera.startPreview();
-    	is_ct_active = true;
-    	return true;
-    }
+    Camera.Parameters p = ct_camera.getParameters();
+    ct_camera.setParameters(p);
 
-    private void stopCamera (){
-    	ct_camera.stopPreview();
-    	ct_camera.release();
-    	this.is_ct_active = false;
-    }
+    VideoView vv = (VideoView) findViewById(R.id.videoView1);
+    try{
+      ct_camera.setPreviewDisplay(vv.getHolder());
+    } catch (IOException ioe) {return false;}
 
-    /** This is the start/stop button behavior */
-    public void onClick (View v){
-    	ct_cam_run();
-    }
-    
-    private void ct_cam_run (){
-  		startCamera();
-  		try { //wait for the camera to adjust.
-			Thread.sleep(6000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+    ct_camera.startPreview();
+    is_ct_active = true;
 
-		this.ct_camera.takePicture(null, this, this);
-		
-	  	try { //wait for the camera to adjust.
-			Thread.sleep(6000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
-		stopCamera();
-    }
+    // Give time for camera to adjust.
+    try { Thread.sleep(2000);}
+    catch(InterruptedException e){Log.e("ct_cam_run", e.getMessage());}
 
-	public void onPictureTaken(byte[] data, Camera camera) {
-		Log.e("callback", "entering callback");
-		if (data != null) // Skip if no data.
-		{
-			Log.e("callback", "executing storage");
-			this.StoreByteImage(data, 100, this.image_name);
-		}
+    return true;
+  }
+
+  private void stopCamera (){
+    ct_camera.stopPreview();
+    ct_camera.release();
+    this.is_ct_active = false;
+  }
+
+  /** This is the start/stop button behavior */
+  public void onClick (View v){
+	if (!this.is_ct_running){
+	  this.handler.removeCallbacks(this);
+	  this.handler.post(this);
+	  startb.setText("Stop");
+	} else {
+	  this.handler.removeCallbacks(this);
+	  startb.setText("Start");
 	}
+	this.is_ct_running = !this.is_ct_running;	  
+  }
+
+  public void run () {
+	if (!this.is_ct_running)
+		return;
+
+	/** Allows for chnage of times. */
+    long milis = this.getMilies();
+    handler.postDelayed(this, milis);
+    
+    /* construct the name */
+    this.image_name = this.image_prefix + Integer.toString(this.image_counter) + ".jpg";
+    
+    startCamera();
+      
+    this.ct_camera.takePicture(null, this, this);
+    try { Thread.sleep(2000);}
+    catch(InterruptedException e){Log.e("ct_cam_run", e.getMessage());}
  
-    public boolean StoreByteImage(byte[] imageData, int quality, String expName) {
+    stopCamera();
+    this.image_counter++;
+  }
+  
+  public void onPictureTaken(byte[] data, Camera camera) {
+	if (data == null)
+		return;
+	
+	// store image bytes logic.
+    try {
+      // Using sd card. level 7.
+      File root_path =
+        new File(Environment.getExternalStorageDirectory().getAbsolutePath()
+             +"/Android/data/"+this.getPackageName()+"/files/");
+      root_path.mkdirs();
+      File file_path = new File(root_path.getAbsolutePath()+"/"+this.image_name);
+      BufferedOutputStream bos =
+        new BufferedOutputStream( new FileOutputStream (file_path, true));
+      
+      BitmapFactory.Options options = new BitmapFactory.Options();
+      options.inSampleSize = 5;
+      Bitmap myImage =
+        BitmapFactory.decodeByteArray( data, 0, data.length,options);
+      myImage.compress(CompressFormat.JPEG, 100, bos);
 
-    	// Using sd card. on a level 7.
-    	File root_path = Environment.getExternalStorageDirectory();
-    	File file_path = new File(root_path.getAbsolutePath()+"/Android/data/"+this.getPackageName()+"/files/"+expName);
-    	//file_path.mkdirs();
-        FileOutputStream fos = null;
-    	
-    	
-    	Log.e("store", "enter store");
-        try {
-            BitmapFactory.Options options=new BitmapFactory.Options();
-            options.inSampleSize = 5;
-
-            Log.e("store", "decoding");
-            Bitmap myImage = BitmapFactory.decodeByteArray(imageData, 0,
-                    imageData.length,options);
-
-            Log.e("store", "sending to outputstream");
-            fos = new FileOutputStream(file_path, true);
-
-            BufferedOutputStream bos = new BufferedOutputStream(fos);
-
-            Log.e("store", "compressing");
-            myImage.compress(CompressFormat.JPEG, quality, bos);
-
-            bos.flush();
-            bos.close();
-        
-        } catch (FileNotFoundException e) {
-        	Log.e("error", "file not found");
-            Log.e("error",e.getMessage());
-        } catch (IOException e) {
-        	Log.e("error", "general exception");
-            Log.e("error",e.getMessage());
-        }
-        
-        return true;
+      bos.flush();
+      bos.close();
     }
+    catch (FileNotFoundException e) { Log.e("error",e.getMessage());}
+    catch (IOException e) { Log.e("error",e.getMessage());}
+  }
 }
