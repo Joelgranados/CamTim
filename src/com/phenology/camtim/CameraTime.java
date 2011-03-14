@@ -5,14 +5,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.List;
 
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
-import android.graphics.Bitmap;
-import android.graphics.Bitmap.CompressFormat;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Environment;
@@ -134,28 +129,7 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
       BufferedOutputStream bos =
         new BufferedOutputStream( new FileOutputStream (file_path, true));
       
-      BitmapFactory.Options options = new BitmapFactory.Options();
-      options.inSampleSize = 5;
-      Bitmap myImage =
-        BitmapFactory.decodeByteArray( data, 0, data.length,options);
-
-      /** Keep the image if more than 20% of pixels are non-black */
-      double np = myImage.getHeight() * myImage.getWidth();
-      double nnbp_counter = 0, nbp_counter = 0 ;/* Number {Non-}Black Pixels */
-      for ( int row = 0 ; row < myImage.getHeight() ; row++){
-    	for ( int col = 0 ; col < myImage.getWidth() ; col++)
-          if (myImage.getPixel(col, row) <= -1.67772E7)
-    		nbp_counter++;
-    	  else
-    		nnbp_counter++;
-    	  
-    	  if ( nbp_counter > .8*np ) //We dont keep picture
-    		return;
-    	  else if (nnbp_counter > .2*np ) //We take picture
-    		break;
-      }
-      
-      myImage.compress(CompressFormat.JPEG, 100, bos);
+      bos.write(data);
       bos.flush();
       bos.close();
     }
