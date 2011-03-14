@@ -5,21 +5,19 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Date;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.View.OnTouchListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.VideoView;
@@ -123,10 +121,8 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
 	if (data == null)
 		return;
 	
-	// store image bytes logic.
-    try {
-      // Using sd card. level 7.
-      File root_path =
+    try {// store image bytes logic.
+      File root_path = // Using sd card. level 7.
         new File(Environment.getExternalStorageDirectory().getAbsolutePath()
              +"/Android/data/"+this.getPackageName()+"/files/");
       root_path.mkdirs();
@@ -138,8 +134,24 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
       options.inSampleSize = 5;
       Bitmap myImage =
         BitmapFactory.decodeByteArray( data, 0, data.length,options);
-      myImage.compress(CompressFormat.JPEG, 100, bos);
 
+      /** Keep the image if more than 20% of pixels are non-black */
+      double np = myImage.getHeight() * myImage.getWidth();
+      double nnbp_counter = 0, nbp_counter = 0 ;/* Number {Non-}Black Pixels */
+      for ( int row = 0 ; row < myImage.getHeight() ; row++){
+    	  for ( int col = 0 ; col < myImage.getWidth() ; col++)
+    		  if (myImage.getPixel(col, row) <= -1.67772E7)
+    			  nbp_counter++;
+    		  else
+    			  nnbp_counter++;
+    	  
+    	  if ( nbp_counter > .8*np ) //We dont keep picture
+    		  return;
+    	  else if (nnbp_counter > .2*np ) //We take picture
+    		  break;
+      }
+      
+      myImage.compress(CompressFormat.JPEG, 100, bos);
       bos.flush();
       bos.close();
     }
