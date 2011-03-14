@@ -5,8 +5,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 import android.app.Activity;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
@@ -39,6 +41,7 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.main);
+    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
     minutes = (EditText) findViewById(R.id.editText2); 
     startb = (Button) findViewById(R.id.button1);
     startb.setOnClickListener(this);
@@ -50,18 +53,6 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
     handler = new Handler();
   }
   
-  @Override
-  public void onStop(){
-    super.onStop();
-	this.stopCamera();
-  }
-  
-  @Override
-  public void onDestroy(){
-	super.onDestroy();
-	this.stopCamera();
-  }
-
   private long getMilies (){
     try{
       return Long.parseLong(minutes.getText().toString()) * 60 * 1000;
@@ -72,6 +63,7 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
     ct_camera = Camera.open();
 
     Camera.Parameters p = ct_camera.getParameters();
+    p.setPictureSize(2592, 1952);
     ct_camera.setParameters(p);
 
     VideoView vv = (VideoView) findViewById(R.id.videoView1);
@@ -122,7 +114,7 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
     startCamera();
       
     this.ct_camera.takePicture(null, this, this);
-    try { Thread.sleep(2000);}
+    try { Thread.sleep(5000);}
     catch(InterruptedException e){Log.e("ct_cam_run", e.getMessage());}
  
     stopCamera();
