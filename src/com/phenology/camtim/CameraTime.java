@@ -52,14 +52,14 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
   
   @Override
   public void onStop(){
-	  super.onStop();
-	  this.stopCamera();
+    super.onStop();
+	this.stopCamera();
   }
   
   @Override
   public void onDestroy(){
-	  super.onDestroy();
-	  this.stopCamera();
+	super.onDestroy();
+	this.stopCamera();
   }
 
   private long getMilies (){
@@ -110,7 +110,7 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
 
   public void run () {
 	if (!this.is_ct_running)
-		return;
+	  return;
 
 	/** Allows for chnage of times. */
     long milis = this.getMilies();
@@ -131,8 +131,8 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
   
   public void onPictureTaken(byte[] data, Camera camera) {
 	if (data == null)
-		return;
-	
+	  return;
+
     try {// store image bytes logic.
       File root_path = // Using sd card. level 7.
         new File(Environment.getExternalStorageDirectory().getAbsolutePath()
@@ -151,16 +151,16 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
       double np = myImage.getHeight() * myImage.getWidth();
       double nnbp_counter = 0, nbp_counter = 0 ;/* Number {Non-}Black Pixels */
       for ( int row = 0 ; row < myImage.getHeight() ; row++){
-    	  for ( int col = 0 ; col < myImage.getWidth() ; col++)
-    		  if (myImage.getPixel(col, row) <= -1.67772E7)
-    			  nbp_counter++;
-    		  else
-    			  nnbp_counter++;
+    	for ( int col = 0 ; col < myImage.getWidth() ; col++)
+          if (myImage.getPixel(col, row) <= -1.67772E7)
+    		nbp_counter++;
+    	  else
+    		nnbp_counter++;
     	  
     	  if ( nbp_counter > .8*np ) //We dont keep picture
-    		  return;
+    		return;
     	  else if (nnbp_counter > .2*np ) //We take picture
-    		  break;
+    		break;
       }
       
       myImage.compress(CompressFormat.JPEG, 100, bos);
