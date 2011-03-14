@@ -49,6 +49,18 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
     image_counter = 0;
     handler = new Handler();
   }
+  
+  @Override
+  public void onStop(){
+	  super.onStop();
+	  this.stopCamera();
+  }
+  
+  @Override
+  public void onDestroy(){
+	  super.onDestroy();
+	  this.stopCamera();
+  }
 
   private long getMilies (){
     try{
