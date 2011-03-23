@@ -22,7 +22,8 @@ import android.widget.EditText;
 import android.widget.VideoView;
 
 public class CameraTime extends Activity
-implements OnClickListener, Camera.PictureCallback, Runnable{
+implements OnClickListener, Camera.PictureCallback, Runnable,
+Camera.AutoFocusCallback {
     EditText minutes;
   Button startb;
   private Camera ct_camera;
@@ -61,6 +62,7 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
 
     Camera.Parameters p = ct_camera.getParameters();
     p.setPictureSize(2592, 1952);
+    p.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
     ct_camera.setParameters(p);
 
     VideoView vv = (VideoView) findViewById(R.id.videoView1);
@@ -109,15 +111,19 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
     this.image_name = this.image_prefix + Integer.toString(this.image_counter) + ".jpg";
     
     startCamera();
-      
-    this.ct_camera.takePicture(null, this, this);
+    
+    this.ct_camera.autoFocus(this);
+  }
+  
+  public void onAutoFocus(boolean success, Camera camera) {
+	this.ct_camera.takePicture(null, this, this);
     try { Thread.sleep(5000);}
     catch(InterruptedException e){Log.e("ct_cam_run", e.getMessage());}
  
     stopCamera();
     this.image_counter++;
-  }
-  
+  }  
+ 
   public void onPictureTaken(byte[] data, Camera camera) {
 	if (data == null)
 	  return;
@@ -159,4 +165,6 @@ implements OnClickListener, Camera.PictureCallback, Runnable{
     catch (FileNotFoundException e) { Log.e("error",e.getMessage());}
     catch (IOException e) { Log.e("error",e.getMessage());}
   }
+
+
 }
